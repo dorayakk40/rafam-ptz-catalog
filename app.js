@@ -1,7 +1,7 @@
 // ============================================
-// ВСТАВЬТЕ СЮДА URL ВАШЕГО API (из шага 1)
+// ВСТАВЬТЕ СЮДА URL ВАШЕГО API
 // ============================================
-const API_URL = "https://script.google.com/macros/s/AKfycbzzNAvisczP1Sdu-TS_xaVs180dBLyaUETia7WLWncsdCKu5MKZa9YHp-U_QS8DsOa6Fg/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbzNAvisczP1sdu-TS_xaVs18QdBLyaUET1a7WLWncsdCKu5MKZa9YHp-U_Q58Ds0a6Fg/exec";
 
 // Инициализация Telegram Web App
 const tg = window.Telegram.WebApp;
@@ -15,18 +15,16 @@ let searchQuery = "";
 let sortMode = "default";
 
 // ============================================
-// ЗАГРУЗКА ДАННЫХ
+// ЗАГРУЗКА
 // ============================================
 async function loadCatalog() {
   try {
     const response = await fetch(API_URL + "?callback=jsonpCallback");
-const text = await response.text();
-const result = JSON.parse(text.replace(/^jsonpCallback\(/, "").replace(/\);?$/, ""));
+    const text = await response.text();
+    const result = JSON.parse(text.replace(/^jsonpCallback\(/, "").replace(/\);?$/, ""));
     if (result.status === "ok") {
       catalog = result.data;
       renderCatalog();
-    } else {
-      console.error("Ошибка API:", result);
     }
   } catch (e) {
     console.error("Ошибка загрузки:", e);
@@ -35,11 +33,10 @@ const result = JSON.parse(text.replace(/^jsonpCallback\(/, "").replace(/\);?$/, 
 }
 
 // ============================================
-// ФИЛЬТРАЦИЯ + СОРТИРОВКА
+// ФИЛЬТРЫ + СОРТИРОВКА
 // ============================================
 function applyFilters() {
   let list = [...catalog];
-
   if (filters.gender) list = list.filter(a => a.gender === filters.gender);
   if (filters.type)   list = list.filter(a => a.type === filters.type);
   if (filters.brand)  list = list.filter(a => a.brand === filters.brand);
@@ -54,7 +51,6 @@ function applyFilters() {
     });
   }
 
-  // Сортировка
   if (sortMode === "name-asc")   list.sort((a,b) => a.name.localeCompare(b.name));
   if (sortMode === "name-desc")  list.sort((a,b) => b.name.localeCompare(a.name));
   if (sortMode === "brand-asc")  list.sort((a,b) => a.brand.localeCompare(b.brand));
@@ -76,7 +72,7 @@ function renderCatalog() {
     return;
   }
 
-  list.forEach((item, index) => {
+  list.forEach(item => {
     const card = document.createElement("div");
     card.className = "card";
     card.innerHTML = `
@@ -101,7 +97,6 @@ function openModal(item) {
   document.getElementById("modal-type").textContent = "Тип: " + item.type;
   document.getElementById("modal-gender").textContent = "Пол: " + item.gender;
 
-  // Ноты
   let notesHtml = "";
   if (item.topNotes || item.middleNotes || item.baseNotes) {
     notesHtml = "<b>Пирамида нот</b><br>";
@@ -113,11 +108,9 @@ function openModal(item) {
   }
   document.getElementById("modal-notes").innerHTML = notesHtml;
 
-  // Группы
   document.getElementById("modal-groups").innerHTML =
     item.groups.length > 0 ? "<b>Группа:</b> " + item.groups.join(" · ") : "";
 
-  // Кнопка "Рассчитать"
   document.getElementById("calc-btn").onclick = () => {
     tg.sendData(JSON.stringify({
       action: "calc",
@@ -131,19 +124,31 @@ function openModal(item) {
 }
 
 // ============================================
-// ФИЛЬТРЫ
+// ФИЛЬТРЫ (ЗАВИСИМЫЕ)
 // ============================================
 function openFilterModal(filterKey) {
   const titles = { gender: "Пол", type: "Тип", brand: "Бренд", group: "Группа" };
   document.getElementById("filter-title").textContent = titles[filterKey];
 
-  const options = [...new Set(catalog.map(a => {
-    if (filterKey === "gender") return a.gender;
-    if (filterKey === "type")   return a.type;
-    if (filterKey === "brand")  return a.brand;
-    if (filterKey === "group")  return a.groups;
-    return null;
-  }).flat().filter(Boolean))].sort();
+  // Определяем базовый список для фильтра
+  let baseList = [...catalog];
+
+  // Если открываем "Бренд" — учитываем выбранный тип
+  if (filterKey === "brand" && filters.type) {
+    baseList = baseList.filter(a => a.type === filters.type);
+  }
+  // Если открываем "Группу" — учитываем выбранный тип
+  if (filterKey === "group" && filters.type) {
+    baseList = baseList.filter(a => a.type === filters.type);
+  }
+
+  let options;
+  if (filterKey === "gender") options = [...new Set(baseList.map(a => a.gender).filter(Boolean))];
+  else if (filterKey === "type") options = [...new Set(baseList.map(a => a.type).filter(Boolean))];
+  else if (filterKey === "brand") options = [...new Set(baseList.map(a => a.brand).filter(Boolean))];
+  else if (filterKey === "group") options = [...new Set(baseList.flatMap(a => a.groups).filter(Boolean))];
+
+  options = options.sort();
 
   const container = document.getElementById("filter-options");
   container.innerHTML = "";
@@ -153,6 +158,17 @@ function openFilterModal(filterKey) {
     div.textContent = opt;
     div.onclick = () => {
       filters[filterKey] = opt;
+      // Если меняем тип — сбрасываем бренд и группу, если они не подходят
+      if (filterKey === "type") {
+        if (filters.brand) {
+          const hasBrand = catalog.some(a => a.type === opt && a.brand === filters.brand);
+          if (!hasBrand) filters.brand = null;
+        }
+        if (filters.group) {
+          const hasGroup = catalog.some(a => a.type === opt && a.groups.includes(filters.group));
+          if (!hasGroup) filters.group = null;
+        }
+      }
       document.getElementById("filter-modal").classList.add("hidden");
       renderCatalog();
     };
