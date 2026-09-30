@@ -1,7 +1,7 @@
 // ============================================
 // ВСТАВЬТЕ СЮДА URL ВАШЕГО API
 // ============================================
-const API_URL = "https://script.google.com/macros/s/AKfycbzNAvisczP1sdu-TS_xaVs18QdBLyaUET1a7WLWncsdCKu5MKZa9YHp-U_Q58Ds0a6Fg/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbxG1MNpZgZnKPK0Lw2TG9hvmrn6-Ma7Gy8Qknih_3tN962-aW3D7DNNSLeC6jfRxW-FsQ/exec";
 
 // Инициализация Telegram Web App
 const tg = window.Telegram.WebApp;
