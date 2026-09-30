@@ -19,8 +19,9 @@ let sortMode = "default";
 // ============================================
 async function loadCatalog() {
   try {
-    const response = await fetch(API_URL);
-    const result = await response.json();
+    const response = await fetch(API_URL + "?callback=jsonpCallback");
+const text = await response.text();
+const result = JSON.parse(text.replace(/^jsonpCallback\(/, "").replace(/\);?$/, ""));
     if (result.status === "ok") {
       catalog = result.data;
       renderCatalog();
