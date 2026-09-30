@@ -24,7 +24,6 @@ async function loadCatalog() {
     const result = JSON.parse(text.replace(/^jsonpCallback\(/, "").replace(/\);?$/, ""));
     if (result.status === "ok") {
       catalog = result.data;
-      console.log("Загружено ароматов:", catalog.length);
       renderCatalog();
     }
   } catch (e) {
@@ -125,38 +124,19 @@ function openModal(item) {
 }
 
 // ============================================
-// ФИЛЬТРЫ (ЗАВИСИМЫЕ) — НОВАЯ ВЕРСИЯ
+// ФИЛЬТРЫ
 // ============================================
 function openFilterModal(filterKey) {
   const titles = { gender: "Пол", type: "Тип", brand: "Бренд", group: "Группа" };
   document.getElementById("filter-title").textContent = titles[filterKey];
 
-  // Копируем актуальные фильтры
-  const currentFilters = Object.assign({}, filters);
-  console.log("Текущие фильтры:", currentFilters);
-
-  // Базовый список
-  let baseList = [...catalog];
-
-  // ЕСЛИ ОТКРЫВАЕМ "БРЕНД" ИЛИ "ГРУППУ" — УЧИТЫВАЕМ ВЫБРАННЫЙ ТИП
-  if ((filterKey === "brand" || filterKey === "group") && currentFilters.type) {
-    baseList = baseList.filter(a => a.type === currentFilters.type);
-    console.log("После фильтра по типу:", baseList.length, "ароматов");
-  }
-
-  // Также учитываем выбранный пол
-  if ((filterKey === "brand" || filterKey === "group") && currentFilters.gender) {
-    baseList = baseList.filter(a => a.gender === currentFilters.gender);
-  }
-
-  let options;
-  if (filterKey === "gender") options = [...new Set(baseList.map(a => a.gender).filter(Boolean))];
-  else if (filterKey === "type") options = [...new Set(baseList.map(a => a.type).filter(Boolean))];
-  else if (filterKey === "brand") options = [...new Set(baseList.map(a => a.brand).filter(Boolean))];
-  else if (filterKey === "group") options = [...new Set(baseList.flatMap(a => a.groups).filter(Boolean))];
-
-  options = options.sort();
-  console.log("Опции для фильтра " + filterKey + ":", options);
+  const options = [...new Set(catalog.map(a => {
+    if (filterKey === "gender") return a.gender;
+    if (filterKey === "type")   return a.type;
+    if (filterKey === "brand")  return a.brand;
+    if (filterKey === "group")  return a.groups;
+    return null;
+  }).flat().filter(Boolean))].sort();
 
   const container = document.getElementById("filter-options");
   container.innerHTML = "";
@@ -166,15 +146,6 @@ function openFilterModal(filterKey) {
     div.textContent = opt;
     div.onclick = () => {
       filters[filterKey] = opt;
-      // Сброс зависимых фильтров при смене типа
-      if (filterKey === "type") {
-        if (filters.brand && !catalog.some(a => a.type === opt && a.brand === filters.brand)) {
-          filters.brand = null;
-        }
-        if (filters.group && !catalog.some(a => a.type === opt && a.groups.includes(filters.group))) {
-          filters.group = null;
-        }
-      }
       document.getElementById("filter-modal").classList.add("hidden");
       renderCatalog();
     };
