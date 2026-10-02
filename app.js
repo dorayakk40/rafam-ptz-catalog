@@ -1,8 +1,7 @@
 // ============================================
 // URL API
 // ============================================
-const API_URL = "https://script.google.com/macros/s/AKfycbxG1MNpZgZnKPK0Lw2TG9hvmrn6-Ma7Gy8Qknih_3tN962-aW3D7DNNSLeC6jfRxW-FsQ/exec
-";
+const API_URL = "https://script.google.com/macros/s/AKfycbxG1MNpZgZnKPK0Lw2TG9hvmrn6-Ma7Gy8Qknih_3tN962-aW3D7DNNSLeC6jfRxW-FsQ/exec";
 
 // Инициализация Telegram Web App
 const tg = window.Telegram.WebApp;
@@ -129,12 +128,9 @@ function openModal(item) {
     item.groups.length > 0 ? "<b>Группа:</b> " + item.groups.join(" · ") : "";
 
   document.getElementById("calc-btn").onclick = () => {
-    tg.sendData(JSON.stringify({
-      action: "calc",
-      aroma: item.name,
-      brand: item.brand
-    }));
-    tg.close();
+    const url = "calc.html?aroma=" + encodeURIComponent(item.name) +
+                "&brand=" + encodeURIComponent(item.brand);
+    tg.openLink(window.location.origin + window.location.pathname.replace(/index\.html$/, "") + url);
   };
 
   document.getElementById("modal").classList.remove("hidden");
