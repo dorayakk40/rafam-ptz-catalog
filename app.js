@@ -13,6 +13,7 @@ let catalog = [];
 let filters = { gender: null, type: null, brand: null, group: null };
 let searchQuery = "";
 let sortMode = "default";
+let onlyInStock = false;
 
 // ============================================
 // ЗАГРУЗКА
@@ -37,6 +38,8 @@ async function loadCatalog() {
 // ============================================
 function applyFilters() {
   let list = [...catalog];
+
+  if (onlyInStock) list = list.filter(a => a.inStock === true);
   if (filters.gender) list = list.filter(a => a.gender === filters.gender);
   if (filters.type)   list = list.filter(a => a.type === filters.type);
   if (filters.brand)  list = list.filter(a => a.brand === filters.brand);
@@ -134,19 +137,36 @@ function openModal(item) {
 }
 
 // ============================================
-// ФИЛЬТРЫ
+// ФИЛЬТРЫ (ЗАВИСИМЫЕ)
 // ============================================
 function openFilterModal(filterKey) {
   const titles = { gender: "Пол", type: "Тип", brand: "Бренд", group: "Группа" };
   document.getElementById("filter-title").textContent = titles[filterKey];
 
-  const options = [...new Set(catalog.map(a => {
-    if (filterKey === "gender") return a.gender;
-    if (filterKey === "type")   return a.type;
-    if (filterKey === "brand")  return a.brand;
-    if (filterKey === "group")  return a.groups;
-    return null;
-  }).flat().filter(Boolean))].sort();
+  // Базовый список с учётом уже выбранных фильтров
+  let baseList = [...catalog];
+
+  // Учитываем "Только в наличии"
+  if (onlyInStock) baseList = baseList.filter(a => a.inStock === true);
+
+  // Для фильтра «Бренд» — учитываем выбранный «Тип» и «Пол»
+  if (filterKey === "brand") {
+    if (filters.type) baseList = baseList.filter(a => a.type === filters.type);
+    if (filters.gender) baseList = baseList.filter(a => a.gender === filters.gender);
+  }
+
+  // Для фильтра «Группа» — учитываем выбранный «Тип»
+  if (filterKey === "group") {
+    if (filters.type) baseList = baseList.filter(a => a.type === filters.type);
+  }
+
+  let options;
+  if (filterKey === "gender") options = [...new Set(baseList.map(a => a.gender).filter(Boolean))];
+  else if (filterKey === "type") options = [...new Set(baseList.map(a => a.type).filter(Boolean))];
+  else if (filterKey === "brand") options = [...new Set(baseList.map(a => a.brand).filter(Boolean))];
+  else if (filterKey === "group") options = [...new Set(baseList.flatMap(a => a.groups).filter(Boolean))];
+
+  options = options.sort();
 
   const container = document.getElementById("filter-options");
   container.innerHTML = "";
@@ -156,6 +176,15 @@ function openFilterModal(filterKey) {
     div.textContent = opt;
     div.onclick = () => {
       filters[filterKey] = opt;
+      // Если меняем тип — сбрасываем бренд/группу, если они не подходят
+      if (filterKey === "type") {
+        if (filters.brand && !catalog.some(a => a.type === opt && a.brand === filters.brand)) {
+          filters.brand = null;
+        }
+        if (filters.group && !catalog.some(a => a.type === opt && a.groups.includes(filters.group))) {
+          filters.group = null;
+        }
+      }
       document.getElementById("filter-modal").classList.add("hidden");
       renderCatalog();
     };
@@ -178,14 +207,23 @@ document.getElementById("sort-select").addEventListener("change", e => {
   renderCatalog();
 });
 
-document.querySelectorAll(".filter-btn").forEach(btn => {
+document.querySelectorAll(".filter-btn[data-filter]").forEach(btn => {
   btn.addEventListener("click", () => openFilterModal(btn.dataset.filter));
+});
+
+// Тумблер "Только в наличии"
+document.getElementById("in-stock-toggle").addEventListener("click", function() {
+  onlyInStock = !onlyInStock;
+  this.classList.toggle("active", onlyInStock);
+  renderCatalog();
 });
 
 document.getElementById("reset-filters").addEventListener("click", () => {
   filters = { gender: null, type: null, brand: null, group: null };
   searchQuery = "";
+  onlyInStock = false;
   document.getElementById("search").value = "";
+  document.getElementById("in-stock-toggle").classList.remove("active");
   renderCatalog();
 });
 
