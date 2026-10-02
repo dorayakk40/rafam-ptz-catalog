@@ -214,3 +214,17 @@ body {
   background: var(--tg-theme-button-color, #2481cc);
   color: #fff;
 }
+
+/* Тумблер "Только в наличии" */
+.toggle-btn {
+  background: var(--tg-theme-secondary-bg-color, #eee);
+  color: var(--tg-theme-text-color, #000);
+  border: 1px solid var(--tg-theme-hint-color, #ccc);
+  transition: all 0.2s;
+}
+
+.toggle-btn.active {
+  background: #2e7d32;
+  color: #fff;
+  border-color: #2e7d32;
+}
