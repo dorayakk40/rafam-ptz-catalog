@@ -105,7 +105,7 @@ body {
   opacity: 0.7;
 }
 
-/* Бейдж "Нет в наличии" */
+/* Бейджи */
 .card-photo-wrapper {
   position: relative;
 }
@@ -120,6 +120,11 @@ body {
   padding: 4px 8px;
   border-radius: 6px;
   font-weight: bold;
+}
+
+.badge-new {
+  background: #f57c00 !important;
+  top: 36px !important;
 }
 
 /* Модальное окно */
@@ -215,7 +220,7 @@ body {
   color: #fff;
 }
 
-/* Тумблер "Только в наличии" */
+/* Тумблеры */
 .toggle-btn {
   background: var(--tg-theme-secondary-bg-color, #eee);
   color: var(--tg-theme-text-color, #000);
@@ -229,67 +234,7 @@ body {
   border-color: #2e7d32;
 }
 
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Каталог ароматов Rafam</title>
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <link rel="stylesheet" href="style.css">
-</head>
-<body>
-
-  <div class="header">
-    <h1>Каталог ароматов</h1>
-    <input type="text" id="search" placeholder="Поиск по названию или нотам...">
-  </div>
-
-  <div class="filters">
-    <button class="filter-btn" data-filter="gender">Пол</button>
-    <button class="filter-btn" data-filter="type">Тип</button>
-    <button class="filter-btn" data-filter="brand">Бренд</button>
-    <button class="filter-btn" data-filter="group">Группа</button>
-    <button id="in-stock-toggle" class="filter-btn toggle-btn">✓ В наличии</button>
-    <button id="new-toggle" class="filter-btn toggle-btn">✨ Новинки</button>
-    <button id="reset-filters" class="reset-btn">Сбросить</button>
-  </div>
-
-  <div class="sort">
-    <select id="sort-select">
-      <option value="default">По умолчанию</option>
-      <option value="name-asc">Название (А–Я)</option>
-      <option value="name-desc">Название (Я–А)</option>
-      <option value="brand-asc">Бренд (А–Я)</option>
-      <option value="brand-desc">Бренд (Я–А)</option>
-    </select>
-  </div>
-
-  <div id="catalog" class="catalog-grid"></div>
-
-  <div id="modal" class="modal hidden">
-    <div class="modal-content">
-      <button id="modal-close" class="modal-close">×</button>
-      <img id="modal-photo" class="modal-photo" src="" alt="">
-      <h2 id="modal-name"></h2>
-      <p id="modal-brand" class="modal-brand"></p>
-      <p id="modal-type"></p>
-      <p id="modal-gender"></p>
-      <p id="modal-stock"></p>
-      <div id="modal-notes"></div>
-      <div id="modal-groups"></div>
-      <button id="calc-btn" class="calc-btn">Рассчитать стоимость</button>
-    </div>
-  </div>
-
-  <div id="filter-modal" class="modal hidden">
-    <div class="modal-content">
-      <button id="filter-close" class="modal-close">×</button>
-      <h3 id="filter-title"></h3>
-      <div id="filter-options"></div>
-    </div>
-  </div>
-
-  <script src="app.js"></script>
-</body>
-</html>
+#new-toggle.active {
+  background: #f57c00;
+  border-color: #f57c00;
+}
