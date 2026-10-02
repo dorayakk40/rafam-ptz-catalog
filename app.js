@@ -1,7 +1,7 @@
 // ============================================
 // ВСТАВЬТЕ СЮДА URL ВАШЕГО API
 // ============================================
-const API_URL = "https://script.google.com/macros/s/AKfycbxG1MNpZgZnKPK0Lw2TG9hvmrn6-Ma7Gy8Qknih_3tN962-aW3D7DNNSLeC6jfRxW-FsQ/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbzNAvisczP1sdu-TS_xaVs18QdBLyaUET1a7WLWncsdCKu5MKZa9YHp-U_Q58Ds0a6Fg/exec";
 
 // Инициализация Telegram Web App
 const tg = window.Telegram.WebApp;
@@ -75,8 +75,12 @@ function renderCatalog() {
   list.forEach(item => {
     const card = document.createElement("div");
     card.className = "card";
+    const badge = item.inStock ? "" : `<div class="card-badge">Нет в наличии</div>`;
     card.innerHTML = `
-      <img src="${item.photo || ''}" alt="${item.name}" onerror="this.style.display='none'">
+      <div class="card-photo-wrapper">
+        <img src="${item.photo || ''}" alt="${item.name}" onerror="this.style.display='none'">
+        ${badge}
+      </div>
       <div class="card-info">
         <div class="card-name">${item.name}</div>
         <div class="card-brand">${item.brand}</div>
@@ -96,6 +100,12 @@ function openModal(item) {
   document.getElementById("modal-brand").textContent = item.brand;
   document.getElementById("modal-type").textContent = "Тип: " + item.type;
   document.getElementById("modal-gender").textContent = "Пол: " + item.gender;
+
+  const stockEl = document.getElementById("modal-stock");
+  if (stockEl) {
+    stockEl.textContent = item.inStock ? "✅ В наличии" : "❌ Нет в наличии";
+    stockEl.style.color = item.inStock ? "#2e7d32" : "#c62828";
+  }
 
   let notesHtml = "";
   if (item.topNotes || item.middleNotes || item.baseNotes) {
