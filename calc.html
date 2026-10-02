@@ -27,46 +27,47 @@
     .result-price { font-size: 32px; font-weight: bold; }
     .result-details { font-size: 13px; opacity: 0.85; margin-top: 10px; line-height: 1.5; }
     .empty { text-align: center; opacity: 0.5; padding: 40px 20px; }
-    button { 
+    button {
       width: 100%; padding: 14px; margin-top: 16px; border: none;
       border-radius: 10px; background: var(--tg-theme-button-color, #2481cc);
       color: var(--tg-theme-button-text-color, #fff); font-size: 16px; font-weight: bold;
       cursor: pointer;
     }
+    .loader { text-align: center; padding: 40px; opacity: 0.5; }
   </style>
 </head>
 <body>
 
   <h1>🧮 Калькулятор стоимости</h1>
 
-  <div class="step">
-    <label>Бренд</label>
-    <select id="brand-select"><option value="">Выберите бренд</option></select>
-  </div>
+  <div id="loader" class="loader">Загрузка данных...</div>
 
-  <div class="step">
-    <label>Аромат</label>
-    <select id="aroma-select" disabled><option value="">Сначала выберите бренд</option></select>
-  </div>
-
-  <div class="step">
-    <label>Формат</label>
-    <select id="format-select" disabled>
-      <option value="">Сначала выберите аромат</option>
-      <option value="Масло">Масло</option>
-      <option value="Духи">Духи</option>
-      <option value="В машину">В машину</option>
-    </select>
-  </div>
-
-  <div class="step">
-    <label>Объём</label>
-    <select id="volume-select" disabled><option value="">Сначала выберите формат</option></select>
-  </div>
-
-  <div class="step">
-    <label>Вид флакона</label>
-    <select id="view-select" disabled><option value="">Сначала выберите объём</option></select>
+  <div id="form" style="display:none;">
+    <div class="step">
+      <label>Бренд</label>
+      <select id="brand-select"><option value="">Выберите бренд</option></select>
+    </div>
+    <div class="step">
+      <label>Аромат</label>
+      <select id="aroma-select" disabled><option value="">Сначала выберите бренд</option></select>
+    </div>
+    <div class="step">
+      <label>Формат</label>
+      <select id="format-select" disabled>
+        <option value="">Сначала выберите аромат</option>
+        <option value="Масло">Масло</option>
+        <option value="Духи">Духи</option>
+        <option value="В машину">В машину</option>
+      </select>
+    </div>
+    <div class="step">
+      <label>Объём</label>
+      <select id="volume-select" disabled><option value="">Сначала выберите формат</option></select>
+    </div>
+    <div class="step">
+      <label>Вид флакона</label>
+      <select id="view-select" disabled><option value="">Сначала выберите объём</option></select>
+    </div>
   </div>
 
   <div id="result" class="result" style="display:none;">
@@ -79,14 +80,12 @@
     Выберите все параметры, чтобы увидеть цену
   </div>
 
-  <button id="contact-btn" style="display:none;">Связаться с продавцом</button>
-
   <script>
     const tg = window.Telegram.WebApp;
     tg.ready();
     tg.expand();
 
-    const API_URL = "https://script.google.com/macros/s/AKfycbxG1MNpZgZnKPK0Lw2TG9hvmrn6-Ma7Gy8Qknih_3tN962-aW3D7DNNSLeC6jfRxW-FsQ/exec?type=calc";
+    const API_URL = "https://script.google.com/macros/s/AKfycbxG1MNpZgZnKPK0Lw2TG9hvmrn6-Ma7Gy8Qknih_3tN962-aW3D7DNNSLeC6jfRxW-FsQ/exec";
 
     let aromas = [];
     let bottles = [];
@@ -99,13 +98,17 @@
         const text = await response.text();
         const result = JSON.parse(text.replace(/^jsonpCallback\(/, "").replace(/\);?$/, ""));
         if (result.status === "ok") {
-          aromas = result.data.aromas;
-          bottles = result.data.bottles;
+          aromas = result.data.aromas || [];
+          bottles = result.data.bottles || [];
+          document.getElementById("loader").style.display = "none";
+          document.getElementById("form").style.display = "block";
+          document.getElementById("empty").style.display = "block";
           initBrands();
           checkPreSelected();
         }
       } catch (e) {
         console.error("Ошибка загрузки:", e);
+        document.getElementById("loader").textContent = "Ошибка загрузки данных";
       }
     }
 
@@ -137,13 +140,7 @@
       const brand = document.getElementById("brand-select").value;
       const aromaSelect = document.getElementById("aroma-select");
       aromaSelect.innerHTML = '<option value="">Выберите аромат</option>';
-      
-      if (!brand) {
-        aromaSelect.disabled = true;
-        resetBelow("aroma");
-        return;
-      }
-      
+      if (!brand) { aromaSelect.disabled = true; resetBelow("aroma"); return; }
       const list = aromas.filter(a => a.brand === brand);
       list.forEach(a => {
         const opt = document.createElement("option");
@@ -160,7 +157,6 @@
       const brand = document.getElementById("brand-select").value;
       const name = document.getElementById("aroma-select").value;
       selectedAroma = aromas.find(a => a.brand === brand && a.name === name);
-      
       const formatSelect = document.getElementById("format-select");
       formatSelect.disabled = !selectedAroma;
       if (selectedAroma) formatSelect.value = "";
@@ -173,13 +169,7 @@
       const format = document.getElementById("format-select").value;
       const volumeSelect = document.getElementById("volume-select");
       volumeSelect.innerHTML = '<option value="">Выберите объём</option>';
-      
-      if (!format) {
-        volumeSelect.disabled = true;
-        resetBelow("volume");
-        return;
-      }
-      
+      if (!format) { volumeSelect.disabled = true; resetBelow("volume"); return; }
       const volumes = [...new Set(bottles.filter(b => b.format === format).map(b => b.volume))];
       volumes.forEach(v => {
         const opt = document.createElement("option");
@@ -197,13 +187,7 @@
       const volume = document.getElementById("volume-select").value;
       const viewSelect = document.getElementById("view-select");
       viewSelect.innerHTML = '<option value="">Выберите вид</option>';
-      
-      if (!volume) {
-        viewSelect.disabled = true;
-        resetBelow("view");
-        return;
-      }
-      
+      if (!volume) { viewSelect.disabled = true; resetBelow("view"); return; }
       const views = bottles.filter(b => b.format === format && b.volume === volume);
       views.forEach(b => {
         const opt = document.createElement("option");
@@ -220,9 +204,7 @@
       const format = document.getElementById("format-select").value;
       const volume = document.getElementById("volume-select").value;
       const view = document.getElementById("view-select").value;
-      
       if (!view) { resetResult(); return; }
-      
       selectedBottle = bottles.find(b => b.format === format && b.volume === volume && b.view === view);
       calculate();
     }
@@ -245,39 +227,30 @@
 
     function resetResult() {
       document.getElementById("result").style.display = "none";
-      document.getElementById("empty").style.display = "block";
-      document.getElementById("contact-btn").style.display = "none";
+      if (document.getElementById("form").style.display !== "none") {
+        document.getElementById("empty").style.display = "block";
+      }
     }
 
     function calculate() {
       if (!selectedAroma || !selectedBottle) return;
       const format = document.getElementById("format-select").value;
       const volume = parseFloat(document.getElementById("volume-select").value);
-      
       let oilMl;
       if (format === "Масло") oilMl = volume;
       else if (format === "Духи") oilMl = volume / 2;
       else if (format === "В машину") oilMl = volume * 0.3;
       else oilMl = volume;
-      
       const oilCost = Math.round(oilMl * selectedAroma.pricePerMl);
       const total = oilCost + selectedBottle.price;
-      
       document.getElementById("result-price").textContent = total + " ₽";
       document.getElementById("result-details").innerHTML =
         `${selectedAroma.brand} — ${selectedAroma.name}<br>` +
         `Формат: ${format}, объём: ${volume} мл<br>` +
         `Флакон: ${selectedBottle.view}`;
-      
       document.getElementById("result").style.display = "block";
       document.getElementById("empty").style.display = "none";
-      document.getElementById("contact-btn").style.display = "block";
     }
-
-    document.getElementById("contact-btn").addEventListener("click", () => {
-      tg.openTelegramLink("https://t.me/rafamptz_bot");
-      tg.close();
-    });
 
     loadData();
   </script>
