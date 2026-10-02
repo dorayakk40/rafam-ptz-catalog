@@ -3,39 +3,91 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Каталог ароматов Rafam</title>
+  <title>Rafam — Каталог и Калькулятор</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-  <div class="header">
-    <h1>Каталог ароматов</h1>
-    <input type="text" id="search" placeholder="Поиск по названию или нотам...">
+  <!-- Переключатель вкладок -->
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="catalog">📖 Каталог</button>
+    <button class="tab-btn" data-tab="calc">🧮 Калькулятор</button>
   </div>
 
-  <div class="filters">
-    <button class="filter-btn" data-filter="gender">Пол</button>
-    <button class="filter-btn" data-filter="type">Тип</button>
-    <button class="filter-btn" data-filter="brand">Бренд</button>
-    <button class="filter-btn" data-filter="group">Группа</button>
-    <button id="in-stock-toggle" class="filter-btn toggle-btn">✓ В наличии</button>
-    <button id="new-toggle" class="filter-btn toggle-btn">✨ Новинки</button>
-    <button id="reset-filters" class="reset-btn">Сбросить</button>
+  <!-- ВКЛАДКА: КАТАЛОГ -->
+  <div id="tab-catalog" class="tab-content active">
+    <div class="header">
+      <input type="text" id="search" placeholder="Поиск по названию или нотам...">
+    </div>
+
+    <div class="filters">
+      <button class="filter-btn" data-filter="gender">Пол</button>
+      <button class="filter-btn" data-filter="type">Тип</button>
+      <button class="filter-btn" data-filter="brand">Бренд</button>
+      <button class="filter-btn" data-filter="group">Группа</button>
+      <button id="in-stock-toggle" class="filter-btn toggle-btn">✓ В наличии</button>
+      <button id="new-toggle" class="filter-btn toggle-btn">✨ Новинки</button>
+      <button id="reset-filters" class="reset-btn">Сбросить</button>
+    </div>
+
+    <div class="sort">
+      <select id="sort-select">
+        <option value="default">По умолчанию</option>
+        <option value="name-asc">Название (А–Я)</option>
+        <option value="name-desc">Название (Я–А)</option>
+        <option value="brand-asc">Бренд (А–Я)</option>
+        <option value="brand-desc">Бренд (Я–А)</option>
+      </select>
+    </div>
+
+    <div id="catalog" class="catalog-grid"></div>
   </div>
 
-  <div class="sort">
-    <select id="sort-select">
-      <option value="default">По умолчанию</option>
-      <option value="name-asc">Название (А–Я)</option>
-      <option value="name-desc">Название (Я–А)</option>
-      <option value="brand-asc">Бренд (А–Я)</option>
-      <option value="brand-desc">Бренд (Я–А)</option>
-    </select>
+  <!-- ВКЛАДКА: КАЛЬКУЛЯТОР -->
+  <div id="tab-calc" class="tab-content">
+    <div id="calc-loader" class="loader">Загрузка данных...</div>
+
+    <div id="calc-form" style="display:none;">
+      <div class="step">
+        <label>Бренд</label>
+        <select id="brand-select"><option value="">Выберите бренд</option></select>
+      </div>
+      <div class="step">
+        <label>Аромат</label>
+        <select id="aroma-select" disabled><option value="">Сначала выберите бренд</option></select>
+      </div>
+      <div class="step">
+        <label>Формат</label>
+        <select id="format-select" disabled>
+          <option value="">Сначала выберите аромат</option>
+          <option value="Масло">Масло</option>
+          <option value="Духи">Духи</option>
+          <option value="В машину">В машину</option>
+        </select>
+      </div>
+      <div class="step">
+        <label>Объём</label>
+        <select id="volume-select" disabled><option value="">Сначала выберите формат</option></select>
+      </div>
+      <div class="step">
+        <label>Вид флакона</label>
+        <div id="view-options" class="view-options"></div>
+      </div>
+    </div>
+
+    <div id="calc-result" class="result" style="display:none;">
+      <div class="result-label">Итого к оплате</div>
+      <div class="result-price" id="result-price">0 ₽</div>
+      <div class="result-details" id="result-details"></div>
+    </div>
+
+    <div id="calc-empty" class="empty" style="display:none;">
+      Выберите все параметры, чтобы увидеть цену
+    </div>
   </div>
 
-  <div id="catalog" class="catalog-grid"></div>
-
+  <!-- Модальное окно каталога -->
   <div id="modal" class="modal hidden">
     <div class="modal-content">
       <button id="modal-close" class="modal-close">×</button>
@@ -51,6 +103,7 @@
     </div>
   </div>
 
+  <!-- Модальное окно фильтра -->
   <div id="filter-modal" class="modal hidden">
     <div class="modal-content">
       <button id="filter-close" class="modal-close">×</button>
