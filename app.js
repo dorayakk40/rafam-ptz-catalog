@@ -8,16 +8,55 @@ const tg = window.Telegram.WebApp;
 tg.ready();
 tg.expand();
 
-// Состояние
+// ============================================
+// СОСТОЯНИЕ
+// ============================================
 let catalog = [];
+let aromas = [];
+let bottles = [];
 let filters = { gender: null, type: null, brand: null, group: null };
 let searchQuery = "";
 let sortMode = "default";
 let onlyInStock = false;
 let onlyNew = false;
 
+// Для калькулятора
+let selectedAroma = null;
+let selectedBottle = null;
+
 // ============================================
-// ЗАГРУЗКА
+// ВКЛАДКИ
+// ============================================
+document.querySelectorAll(".tab-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    const tab = btn.dataset.tab;
+    document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+    document.querySelectorAll(".tab-content").forEach(c => c.classList.remove("active"));
+    btn.classList.add("active");
+    document.getElementById("tab-" + tab).classList.add("active");
+    
+    // Если открыли калькулятор — загружаем данные
+    if (tab === "calc" && aromas.length === 0) {
+      loadCalcData();
+    }
+  });
+});
+
+function switchToCalc(aromaName, brandName) {
+  document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+  document.querySelectorAll(".tab-content").forEach(c => c.classList.remove("active"));
+  document.querySelector('[data-tab="calc"]').classList.add("active");
+  document.getElementById("tab-calc").classList.add("active");
+  
+  if (aromas.length === 0) {
+    loadCalcData(aromaName, brandName);
+  } else {
+    setCalcValues(aromaName, brandName);
+  }
+}
+
+// ============================================
+// ЗАГРУЗКА КАТАЛОГА
 // ============================================
 async function loadCatalog() {
   try {
@@ -63,9 +102,6 @@ function applyFilters() {
   return list;
 }
 
-// ============================================
-// ОТРИСОВКА
-// ============================================
 function renderCatalog() {
   const list = applyFilters();
   const container = document.getElementById("catalog");
@@ -108,10 +144,8 @@ function openModal(item) {
   document.getElementById("modal-gender").textContent = "Пол: " + item.gender;
 
   const stockEl = document.getElementById("modal-stock");
-  if (stockEl) {
-    stockEl.textContent = item.inStock ? "✅ В наличии" : "❌ Нет в наличии";
-    stockEl.style.color = item.inStock ? "#2e7d32" : "#c62828";
-  }
+  stockEl.textContent = item.inStock ? "✅ В наличии" : "❌ Нет в наличии";
+  stockEl.style.color = item.inStock ? "#2e7d32" : "#c62828";
 
   let notesHtml = "";
   if (item.topNotes || item.middleNotes || item.baseNotes) {
@@ -128,9 +162,8 @@ function openModal(item) {
     item.groups.length > 0 ? "<b>Группа:</b> " + item.groups.join(" · ") : "";
 
   document.getElementById("calc-btn").onclick = () => {
-    const url = "calc.html?aroma=" + encodeURIComponent(item.name) +
-                "&brand=" + encodeURIComponent(item.brand);
-    tg.openLink(window.location.origin + window.location.pathname.replace(/index\.html$/, "") + url);
+    document.getElementById("modal").classList.add("hidden");
+    switchToCalc(item.name, item.brand);
   };
 
   document.getElementById("modal").classList.remove("hidden");
@@ -184,7 +217,7 @@ function openFilterModal(filterKey) {
 }
 
 // ============================================
-// СОБЫТИЯ
+// СОБЫТИЯ КАТАЛОГА
 // ============================================
 document.getElementById("search").addEventListener("input", e => {
   searchQuery = e.target.value;
@@ -230,6 +263,176 @@ document.getElementById("modal-close").addEventListener("click", () => {
 document.getElementById("filter-close").addEventListener("click", () => {
   document.getElementById("filter-modal").classList.add("hidden");
 });
+
+// ============================================
+// КАЛЬКУЛЯТОР
+// ============================================
+let calcLoaded = false;
+
+async function loadCalcData(preAroma, preBrand) {
+  if (calcLoaded) {
+    if (preAroma && preBrand) setCalcValues(preAroma, preBrand);
+    return;
+  }
+  
+  try {
+    const response = await fetch(API_URL + "?type=calc&callback=jsonpCallback");
+    const text = await response.text();
+    const result = JSON.parse(text.replace(/^jsonpCallback\(/, "").replace(/\);?$/, ""));
+    if (result.status === "ok") {
+      aromas = result.data.aromas || [];
+      bottles = result.data.bottles || [];
+      calcLoaded = true;
+      
+      document.getElementById("calc-loader").style.display = "none";
+      document.getElementById("calc-form").style.display = "block";
+      document.getElementById("calc-empty").style.display = "block";
+      
+      initBrandsCalc();
+      
+      if (preAroma && preBrand) setCalcValues(preAroma, preBrand);
+    }
+  } catch (e) {
+    console.error("Ошибка загрузки калькулятора:", e);
+    document.getElementById("calc-loader").textContent = "Ошибка загрузки данных";
+  }
+}
+
+function initBrandsCalc() {
+  const brands = [...new Set(aromas.map(a => a.brand))].sort();
+  const select = document.getElementById("brand-select");
+  select.innerHTML = '<option value="">Выберите бренд</option>';
+  brands.forEach(b => {
+    const opt = document.createElement("option");
+    opt.value = b; opt.textContent = b;
+    select.appendChild(opt);
+  });
+}
+
+function setCalcValues(aromaName, brandName) {
+  document.getElementById("brand-select").value = brandName;
+  onBrandChange();
+  document.getElementById("aroma-select").value = aromaName;
+  onAromaChange();
+}
+
+document.getElementById("brand-select").addEventListener("change", onBrandChange);
+
+function onBrandChange() {
+  const brand = document.getElementById("brand-select").value;
+  const aromaSelect = document.getElementById("aroma-select");
+  aromaSelect.innerHTML = '<option value="">Выберите аромат</option>';
+  if (!brand) { aromaSelect.disabled = true; resetBelow("aroma"); return; }
+  const list = aromas.filter(a => a.brand === brand);
+  list.forEach(a => {
+    const opt = document.createElement("option");
+    opt.value = a.name; opt.textContent = a.name;
+    aromaSelect.appendChild(opt);
+  });
+  aromaSelect.disabled = false;
+  resetBelow("aroma");
+}
+
+document.getElementById("aroma-select").addEventListener("change", onAromaChange);
+
+function onAromaChange() {
+  const brand = document.getElementById("brand-select").value;
+  const name = document.getElementById("aroma-select").value;
+  selectedAroma = aromas.find(a => a.brand === brand && a.name === name);
+  const formatSelect = document.getElementById("format-select");
+  formatSelect.disabled = !selectedAroma;
+  if (selectedAroma) formatSelect.value = "";
+  resetBelow("format");
+}
+
+document.getElementById("format-select").addEventListener("change", onFormatChange);
+
+function onFormatChange() {
+  const format = document.getElementById("format-select").value;
+  const volumeSelect = document.getElementById("volume-select");
+  volumeSelect.innerHTML = '<option value="">Выберите объём</option>';
+  if (!format) { volumeSelect.disabled = true; resetBelow("volume"); return; }
+  const volumes = [...new Set(bottles.filter(b => b.format === format).map(b => b.volume))];
+  volumes.forEach(v => {
+    const opt = document.createElement("option");
+    opt.value = v; opt.textContent = v + " мл";
+    volumeSelect.appendChild(opt);
+  });
+  volumeSelect.disabled = false;
+  resetBelow("volume");
+}
+
+document.getElementById("volume-select").addEventListener("change", onVolumeChange);
+
+function onVolumeChange() {
+  const format = document.getElementById("format-select").value;
+  const volume = document.getElementById("volume-select").value;
+  const container = document.getElementById("view-options");
+  container.innerHTML = "";
+  
+  if (!volume) { resetBelow("view"); return; }
+  
+  const views = bottles.filter(b => b.format === format && b.volume === volume);
+  views.forEach(b => {
+    const div = document.createElement("div");
+    div.className = "view-option";
+    div.innerHTML = `
+      ${b.photo ? `<img src="${b.photo}" alt="${b.view}" onerror="this.style.display='none'">` : ''}
+      <div class="view-option-name">${b.view}</div>
+    `;
+    div.onclick = () => {
+      document.querySelectorAll(".view-option").forEach(v => v.classList.remove("active"));
+      div.classList.add("active");
+      selectedBottle = b;
+      calculateCalc();
+    };
+    container.appendChild(div);
+  });
+  
+  resetResult();
+}
+
+function resetBelow(level) {
+  if (level === "aroma") {
+    document.getElementById("format-select").value = "";
+    document.getElementById("format-select").disabled = true;
+  }
+  if (level === "aroma" || level === "format") {
+    document.getElementById("volume-select").innerHTML = '<option value="">Сначала выберите формат</option>';
+    document.getElementById("volume-select").disabled = true;
+  }
+  if (level !== "view") {
+    document.getElementById("view-options").innerHTML = "";
+  }
+  resetResult();
+}
+
+function resetResult() {
+  document.getElementById("calc-result").style.display = "none";
+  if (document.getElementById("calc-form").style.display !== "none") {
+    document.getElementById("calc-empty").style.display = "block";
+  }
+}
+
+function calculateCalc() {
+  if (!selectedAroma || !selectedBottle) return;
+  const format = document.getElementById("format-select").value;
+  const volume = parseFloat(document.getElementById("volume-select").value);
+  let oilMl;
+  if (format === "Масло") oilMl = volume;
+  else if (format === "Духи") oilMl = volume / 2;
+  else if (format === "В машину") oilMl = volume * 0.3;
+  else oilMl = volume;
+  const oilCost = Math.round(oilMl * selectedAroma.pricePerMl);
+  const total = oilCost + selectedBottle.price;
+  document.getElementById("result-price").textContent = total + " ₽";
+  document.getElementById("result-details").innerHTML =
+    `${selectedAroma.brand} — ${selectedAroma.name}<br>` +
+    `Формат: ${format}, объём: ${volume} мл<br>` +
+    `Флакон: ${selectedBottle.view}`;
+  document.getElementById("calc-result").style.display = "block";
+  document.getElementById("calc-empty").style.display = "none";
+}
 
 // ============================================
 // СТАРТ
