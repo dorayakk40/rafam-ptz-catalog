@@ -1,7 +1,8 @@
 // ============================================
-// ВСТАВЬТЕ СЮДА URL ВАШЕГО API
+// URL API
 // ============================================
-const API_URL = "https://script.google.com/macros/s/AKfycbxG1MNpZgZnKPK0Lw2TG9hvmrn6-Ma7Gy8Qknih_3tN962-aW3D7DNNSLeC6jfRxW-FsQ/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbxG1MNpZgZnKPK0Lw2TG9hvmrn6-Ma7Gy8Qknih_3tN962-aW3D7DNNSLeC6jfRxW-FsQ/exec
+";
 
 // Инициализация Telegram Web App
 const tg = window.Telegram.WebApp;
@@ -14,6 +15,7 @@ let filters = { gender: null, type: null, brand: null, group: null };
 let searchQuery = "";
 let sortMode = "default";
 let onlyInStock = false;
+let onlyNew = false;
 
 // ============================================
 // ЗАГРУЗКА
@@ -38,8 +40,8 @@ async function loadCatalog() {
 // ============================================
 function applyFilters() {
   let list = [...catalog];
-
   if (onlyInStock) list = list.filter(a => a.inStock === true);
+  if (onlyNew)     list = list.filter(a => a.isNew === true);
   if (filters.gender) list = list.filter(a => a.gender === filters.gender);
   if (filters.type)   list = list.filter(a => a.type === filters.type);
   if (filters.brand)  list = list.filter(a => a.brand === filters.brand);
@@ -78,11 +80,13 @@ function renderCatalog() {
   list.forEach(item => {
     const card = document.createElement("div");
     card.className = "card";
-    const badge = item.inStock ? "" : `<div class="card-badge">Нет в наличии</div>`;
+    let badges = "";
+    if (!item.inStock) badges += `<div class="card-badge">Нет в наличии</div>`;
+    if (item.isNew)    badges += `<div class="card-badge badge-new">Новинка</div>`;
     card.innerHTML = `
       <div class="card-photo-wrapper">
         <img src="${item.photo || ''}" alt="${item.name}" onerror="this.style.display='none'">
-        ${badge}
+        ${badges}
       </div>
       <div class="card-info">
         <div class="card-name">${item.name}</div>
@@ -137,27 +141,22 @@ function openModal(item) {
 }
 
 // ============================================
-// ФИЛЬТРЫ (ЗАВИСИМЫЕ)
+// ФИЛЬТРЫ
 // ============================================
 function openFilterModal(filterKey) {
   const titles = { gender: "Пол", type: "Тип", brand: "Бренд", group: "Группа" };
   document.getElementById("filter-title").textContent = titles[filterKey];
 
-  // Базовый список с учётом уже выбранных фильтров
   let baseList = [...catalog];
-
-  // Учитываем "Только в наличии"
   if (onlyInStock) baseList = baseList.filter(a => a.inStock === true);
+  if (onlyNew)     baseList = baseList.filter(a => a.isNew === true);
 
-  // Для фильтра «Бренд» — учитываем выбранный «Тип» и «Пол»
   if (filterKey === "brand") {
     if (filters.type) baseList = baseList.filter(a => a.type === filters.type);
     if (filters.gender) baseList = baseList.filter(a => a.gender === filters.gender);
   }
-
-  // Для фильтра «Группа» — учитываем выбранный «Тип»
-  if (filterKey === "group") {
-    if (filters.type) baseList = baseList.filter(a => a.type === filters.type);
+  if (filterKey === "group" && filters.type) {
+    baseList = baseList.filter(a => a.type === filters.type);
   }
 
   let options;
@@ -165,7 +164,6 @@ function openFilterModal(filterKey) {
   else if (filterKey === "type") options = [...new Set(baseList.map(a => a.type).filter(Boolean))];
   else if (filterKey === "brand") options = [...new Set(baseList.map(a => a.brand).filter(Boolean))];
   else if (filterKey === "group") options = [...new Set(baseList.flatMap(a => a.groups).filter(Boolean))];
-
   options = options.sort();
 
   const container = document.getElementById("filter-options");
@@ -176,14 +174,9 @@ function openFilterModal(filterKey) {
     div.textContent = opt;
     div.onclick = () => {
       filters[filterKey] = opt;
-      // Если меняем тип — сбрасываем бренд/группу, если они не подходят
       if (filterKey === "type") {
-        if (filters.brand && !catalog.some(a => a.type === opt && a.brand === filters.brand)) {
-          filters.brand = null;
-        }
-        if (filters.group && !catalog.some(a => a.type === opt && a.groups.includes(filters.group))) {
-          filters.group = null;
-        }
+        if (filters.brand && !catalog.some(a => a.type === opt && a.brand === filters.brand)) filters.brand = null;
+        if (filters.group && !catalog.some(a => a.type === opt && a.groups.includes(filters.group))) filters.group = null;
       }
       document.getElementById("filter-modal").classList.add("hidden");
       renderCatalog();
@@ -211,10 +204,15 @@ document.querySelectorAll(".filter-btn[data-filter]").forEach(btn => {
   btn.addEventListener("click", () => openFilterModal(btn.dataset.filter));
 });
 
-// Тумблер "Только в наличии"
 document.getElementById("in-stock-toggle").addEventListener("click", function() {
   onlyInStock = !onlyInStock;
   this.classList.toggle("active", onlyInStock);
+  renderCatalog();
+});
+
+document.getElementById("new-toggle").addEventListener("click", function() {
+  onlyNew = !onlyNew;
+  this.classList.toggle("active", onlyNew);
   renderCatalog();
 });
 
@@ -222,8 +220,10 @@ document.getElementById("reset-filters").addEventListener("click", () => {
   filters = { gender: null, type: null, brand: null, group: null };
   searchQuery = "";
   onlyInStock = false;
+  onlyNew = false;
   document.getElementById("search").value = "";
   document.getElementById("in-stock-toggle").classList.remove("active");
+  document.getElementById("new-toggle").classList.remove("active");
   renderCatalog();
 });
 
