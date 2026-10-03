@@ -19,8 +19,8 @@ let searchQuery = "";
 let sortMode = "default";
 let onlyInStock = false;
 let onlyNew = false;
+let onlyDiscount = false;
 
-// Для калькулятора
 let selectedAroma = null;
 let selectedBottle = null;
 
@@ -34,11 +34,7 @@ document.querySelectorAll(".tab-btn").forEach(btn => {
     document.querySelectorAll(".tab-content").forEach(c => c.classList.remove("active"));
     btn.classList.add("active");
     document.getElementById("tab-" + tab).classList.add("active");
-    
-    // Если открыли калькулятор — загружаем данные
-    if (tab === "calc" && aromas.length === 0) {
-      loadCalcData();
-    }
+    if (tab === "calc" && aromas.length === 0) loadCalcData();
   });
 });
 
@@ -47,16 +43,12 @@ function switchToCalc(aromaName, brandName) {
   document.querySelectorAll(".tab-content").forEach(c => c.classList.remove("active"));
   document.querySelector('[data-tab="calc"]').classList.add("active");
   document.getElementById("tab-calc").classList.add("active");
-  
-  if (aromas.length === 0) {
-    loadCalcData(aromaName, brandName);
-  } else {
-    setCalcValues(aromaName, brandName);
-  }
+  if (aromas.length === 0) loadCalcData(aromaName, brandName);
+  else setCalcValues(aromaName, brandName);
 }
 
 // ============================================
-// ЗАГРУЗКА КАТАЛОГА
+// ЗАГРУЗКА
 // ============================================
 async function loadCatalog() {
   try {
@@ -74,12 +66,13 @@ async function loadCatalog() {
 }
 
 // ============================================
-// ФИЛЬТРЫ + СОРТИРОВКА
+// ФИЛЬТРЫ
 // ============================================
 function applyFilters() {
   let list = [...catalog];
-  if (onlyInStock) list = list.filter(a => a.inStock === true);
-  if (onlyNew)     list = list.filter(a => a.isNew === true);
+  if (onlyInStock)  list = list.filter(a => a.inStock === true);
+  if (onlyNew)      list = list.filter(a => a.isNew === true);
+  if (onlyDiscount) list = list.filter(a => a.discount > 0);
   if (filters.gender) list = list.filter(a => a.gender === filters.gender);
   if (filters.type)   list = list.filter(a => a.type === filters.type);
   if (filters.brand)  list = list.filter(a => a.brand === filters.brand);
@@ -118,6 +111,7 @@ function renderCatalog() {
     let badges = "";
     if (!item.inStock) badges += `<div class="card-badge">Нет в наличии</div>`;
     if (item.isNew)    badges += `<div class="card-badge badge-new">Новинка</div>`;
+    if (item.discount > 0) badges += `<div class="card-badge badge-sale">−${item.discount}%</div>`;
     card.innerHTML = `
       <div class="card-photo-wrapper">
         <img src="${item.photo || ''}" alt="${item.name}" onerror="this.style.display='none'">
@@ -147,6 +141,17 @@ function openModal(item) {
   stockEl.textContent = item.inStock ? "✅ В наличии" : "❌ Нет в наличии";
   stockEl.style.color = item.inStock ? "#2e7d32" : "#c62828";
 
+  // Скидка
+  const discountEl = document.getElementById("modal-discount");
+  if (discountEl) {
+    if (item.discount > 0) {
+      discountEl.textContent = `🔥 Скидка ${item.discount}%`;
+      discountEl.style.display = "block";
+    } else {
+      discountEl.style.display = "none";
+    }
+  }
+
   let notesHtml = "";
   if (item.topNotes || item.middleNotes || item.baseNotes) {
     notesHtml = "<b>Пирамида нот</b><br>";
@@ -170,15 +175,16 @@ function openModal(item) {
 }
 
 // ============================================
-// ФИЛЬТРЫ
+// ФИЛЬТРЫ (модалка)
 // ============================================
 function openFilterModal(filterKey) {
   const titles = { gender: "Пол", type: "Тип", brand: "Бренд", group: "Группа" };
   document.getElementById("filter-title").textContent = titles[filterKey];
 
   let baseList = [...catalog];
-  if (onlyInStock) baseList = baseList.filter(a => a.inStock === true);
-  if (onlyNew)     baseList = baseList.filter(a => a.isNew === true);
+  if (onlyInStock)  baseList = baseList.filter(a => a.inStock === true);
+  if (onlyNew)      baseList = baseList.filter(a => a.isNew === true);
+  if (onlyDiscount) baseList = baseList.filter(a => a.discount > 0);
 
   if (filterKey === "brand") {
     if (filters.type) baseList = baseList.filter(a => a.type === filters.type);
@@ -217,7 +223,7 @@ function openFilterModal(filterKey) {
 }
 
 // ============================================
-// СОБЫТИЯ КАТАЛОГА
+// СОБЫТИЯ
 // ============================================
 document.getElementById("search").addEventListener("input", e => {
   searchQuery = e.target.value;
@@ -245,14 +251,22 @@ document.getElementById("new-toggle").addEventListener("click", function() {
   renderCatalog();
 });
 
+document.getElementById("discount-toggle").addEventListener("click", function() {
+  onlyDiscount = !onlyDiscount;
+  this.classList.toggle("active", onlyDiscount);
+  renderCatalog();
+});
+
 document.getElementById("reset-filters").addEventListener("click", () => {
   filters = { gender: null, type: null, brand: null, group: null };
   searchQuery = "";
   onlyInStock = false;
   onlyNew = false;
+  onlyDiscount = false;
   document.getElementById("search").value = "";
   document.getElementById("in-stock-toggle").classList.remove("active");
   document.getElementById("new-toggle").classList.remove("active");
+  document.getElementById("discount-toggle").classList.remove("active");
   renderCatalog();
 });
 
@@ -274,7 +288,6 @@ async function loadCalcData(preAroma, preBrand) {
     if (preAroma && preBrand) setCalcValues(preAroma, preBrand);
     return;
   }
-  
   try {
     const response = await fetch(API_URL + "?type=calc&callback=jsonpCallback");
     const text = await response.text();
@@ -283,13 +296,10 @@ async function loadCalcData(preAroma, preBrand) {
       aromas = result.data.aromas || [];
       bottles = result.data.bottles || [];
       calcLoaded = true;
-      
       document.getElementById("calc-loader").style.display = "none";
       document.getElementById("calc-form").style.display = "block";
       document.getElementById("calc-empty").style.display = "block";
-      
       initBrandsCalc();
-      
       if (preAroma && preBrand) setCalcValues(preAroma, preBrand);
     }
   } catch (e) {
@@ -369,23 +379,34 @@ function onVolumeChange() {
   const volume = document.getElementById("volume-select").value;
   const container = document.getElementById("view-options");
   container.innerHTML = "";
-  
   if (!volume) { resetBelow("view"); return; }
   
   const views = bottles.filter(b => b.format === format && b.volume === volume);
   views.forEach(b => {
     const div = document.createElement("div");
     div.className = "view-option";
+    if (!b.inStock) div.classList.add("view-option-disabled");
+    
+    let stockBadge = "";
+    if (!b.inStock) stockBadge = `<div class="view-badge">Нет в наличии</div>`;
+    
     div.innerHTML = `
-      ${b.photo ? `<img src="${b.photo}" alt="${b.view}" onerror="this.style.display='none'">` : ''}
+      <div class="view-photo-wrapper">
+        ${b.photo ? `<img src="${b.photo}" alt="${b.view}" onerror="this.style.display='none'">` : ''}
+        ${stockBadge}
+      </div>
       <div class="view-option-name">${b.view}</div>
     `;
-    div.onclick = () => {
-      document.querySelectorAll(".view-option").forEach(v => v.classList.remove("active"));
-      div.classList.add("active");
-      selectedBottle = b;
-      calculateCalc();
-    };
+    
+    if (b.inStock) {
+      div.onclick = () => {
+        document.querySelectorAll(".view-option").forEach(v => v.classList.remove("active"));
+        div.classList.add("active");
+        selectedBottle = b;
+        calculateCalc();
+      };
+    }
+    
     container.appendChild(div);
   });
   
@@ -423,13 +444,31 @@ function calculateCalc() {
   else if (format === "Духи") oilMl = volume / 2;
   else if (format === "В машину") oilMl = volume * 0.3;
   else oilMl = volume;
+  
   const oilCost = Math.round(oilMl * selectedAroma.pricePerMl);
   const total = oilCost + selectedBottle.price;
-  document.getElementById("result-price").textContent = total + " ₽";
-  document.getElementById("result-details").innerHTML =
+  
+  // Скидка на аромат
+  const aromaData = catalog.find(a => a.name === selectedAroma.name);
+  const discount = aromaData ? aromaData.discount : 0;
+  let finalTotal = total;
+  if (discount > 0) {
+    finalTotal = Math.round(total * (100 - discount) / 100);
+  }
+  
+  document.getElementById("result-price").textContent = finalTotal + " ₽";
+  
+  let detailsHtml = 
     `${selectedAroma.brand} — ${selectedAroma.name}<br>` +
     `Формат: ${format}, объём: ${volume} мл<br>` +
     `Флакон: ${selectedBottle.view}`;
+  
+  if (discount > 0) {
+    detailsHtml += `<br><br><span style="text-decoration: line-through; opacity: 0.7;">${total} ₽</span> ` +
+                   `<b>Скидка ${discount}%</b>`;
+  }
+  
+  document.getElementById("result-details").innerHTML = detailsHtml;
   document.getElementById("calc-result").style.display = "block";
   document.getElementById("calc-empty").style.display = "none";
 }
