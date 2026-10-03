@@ -1,1 +1,119 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rafam — Каталог и Калькулятор</title>
+  <script src="https://unpkg.com/@vkontakte/vk-bridge/dist/browser.min.js"></script>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
 
+  <!-- Переключатель вкладок -->
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="catalog">📖 Каталог</button>
+    <button class="tab-btn" data-tab="calc">🧮 Калькулятор</button>
+  </div>
+
+  <!-- ВКЛАДКА: КАТАЛОГ -->
+  <div id="tab-catalog" class="tab-content active">
+    <div class="header">
+      <input type="text" id="search" placeholder="Поиск по названию или нотам...">
+    </div>
+
+    <div class="filters">
+      <button class="filter-btn" data-filter="gender">Пол</button>
+      <button class="filter-btn" data-filter="type">Тип</button>
+      <button class="filter-btn" data-filter="brand">Бренд</button>
+      <button class="filter-btn" data-filter="group">Группа</button>
+      <button id="in-stock-toggle" class="filter-btn toggle-btn">✓ В наличии</button>
+      <button id="new-toggle" class="filter-btn toggle-btn">✨ Новинки</button>
+      <button id="discount-toggle" class="filter-btn toggle-btn">🔥 Со скидкой</button>
+      <button id="reset-filters" class="reset-btn">Сбросить</button>
+    </div>
+
+    <div class="sort">
+      <select id="sort-select">
+        <option value="default">По умолчанию</option>
+        <option value="name-asc">Название (А–Я)</option>
+        <option value="name-desc">Название (Я–А)</option>
+        <option value="brand-asc">Бренд (А–Я)</option>
+        <option value="brand-desc">Бренд (Я–А)</option>
+      </select>
+    </div>
+
+    <div id="catalog" class="catalog-grid"></div>
+  </div>
+
+  <!-- ВКЛАДКА: КАЛЬКУЛЯТОР -->
+  <div id="tab-calc" class="tab-content">
+    <div id="calc-loader" class="loader">Загрузка данных...</div>
+
+    <div id="calc-form" style="display:none;">
+      <div class="step">
+        <label>Бренд</label>
+        <select id="brand-select"><option value="">Выберите бренд</option></select>
+      </div>
+      <div class="step">
+        <label>Аромат</label>
+        <select id="aroma-select" disabled><option value="">Сначала выберите бренд</option></select>
+      </div>
+      <div class="step">
+        <label>Формат</label>
+        <select id="format-select" disabled>
+          <option value="">Сначала выберите аромат</option>
+          <option value="Масло">Масло</option>
+          <option value="Духи">Духи</option>
+          <option value="В машину">В машину</option>
+        </select>
+      </div>
+      <div class="step">
+        <label>Объём</label>
+        <select id="volume-select" disabled><option value="">Сначала выберите формат</option></select>
+      </div>
+      <div class="step">
+        <label>Вид флакона</label>
+        <div id="view-options" class="view-options"></div>
+      </div>
+    </div>
+
+    <div id="calc-result" class="result" style="display:none;">
+      <div class="result-label">Итого к оплате</div>
+      <div class="result-price" id="result-price">0 ₽</div>
+      <div class="result-details" id="result-details"></div>
+    </div>
+
+    <div id="calc-empty" class="empty" style="display:none;">
+      Выберите все параметры, чтобы увидеть цену
+    </div>
+  </div>
+
+  <!-- Модальное окно каталога -->
+  <div id="modal" class="modal hidden">
+    <div class="modal-content">
+      <button id="modal-close" class="modal-close">×</button>
+      <img id="modal-photo" class="modal-photo" src="" alt="">
+      <h2 id="modal-name"></h2>
+      <p id="modal-brand" class="modal-brand"></p>
+      <p id="modal-type"></p>
+      <p id="modal-gender"></p>
+      <p id="modal-stock"></p>
+      <p id="modal-discount" style="display:none; color:#f57c00; font-weight:bold;"></p>
+      <div id="modal-notes"></div>
+      <div id="modal-groups"></div>
+      <button id="calc-btn" class="calc-btn">Рассчитать стоимость</button>
+    </div>
+  </div>
+
+  <!-- Модальное окно фильтра -->
+  <div id="filter-modal" class="modal hidden">
+    <div class="modal-content">
+      <button id="filter-close" class="modal-close">×</button>
+      <h3 id="filter-title"></h3>
+      <div id="filter-options"></div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
