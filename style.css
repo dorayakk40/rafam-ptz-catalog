@@ -161,6 +161,11 @@ body {
   top: 36px !important;
 }
 
+.badge-sale {
+  background: #c62828 !important;
+  top: 64px !important;
+}
+
 /* Калькулятор */
 .loader {
   text-align: center;
@@ -227,6 +232,27 @@ body {
   text-align: center;
   font-size: 13px;
   font-weight: 500;
+}
+
+.view-option-disabled {
+  opacity: 0.4;
+  cursor: not-allowed !important;
+}
+
+.view-photo-wrapper {
+  position: relative;
+}
+
+.view-badge {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  background: rgba(0, 0, 0, 0.75);
+  color: #fff;
+  font-size: 10px;
+  padding: 3px 6px;
+  border-radius: 4px;
+  font-weight: bold;
 }
 
 .result {
@@ -329,6 +355,11 @@ body {
   margin: 6px 0;
 }
 
+#modal-discount {
+  font-size: 14px;
+  margin: 6px 0;
+}
+
 .calc-btn {
   width: 100%;
   padding: 14px;
@@ -371,4 +402,9 @@ body {
 #new-toggle.active {
   background: #f57c00;
   border-color: #f57c00;
+}
+
+#discount-toggle.active {
+  background: #c62828;
+  border-color: #c62828;
 }
