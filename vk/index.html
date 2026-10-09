@@ -42,12 +42,29 @@
       </select>
     </div>
 
+    <!-- Индикатор загрузки -->
+    <div id="catalog-loader" class="loader">
+      <div class="spinner"></div>
+      <div>Загрузка каталога...</div>
+    </div>
+
+    <!-- Сетка товаров -->
     <div id="catalog" class="catalog-grid"></div>
+
+    <!-- Кнопка "Показать ещё" -->
+    <div id="show-more-container" style="display:none; text-align:center; margin-top:20px;">
+      <button id="show-more-btn" class="filter-btn" style="padding:12px 24px; font-size:15px;">
+        Показать ещё
+      </button>
+    </div>
   </div>
 
   <!-- ВКЛАДКА: КАЛЬКУЛЯТОР -->
   <div id="tab-calc" class="tab-content">
-    <div id="calc-loader" class="loader">Загрузка данных...</div>
+    <div id="calc-loader" class="loader">
+      <div class="spinner"></div>
+      <div>Загрузка данных...</div>
+    </div>
 
     <div id="calc-form" style="display:none;">
       <div class="step">
