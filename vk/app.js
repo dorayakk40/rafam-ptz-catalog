@@ -26,6 +26,10 @@ let onlyDiscount = false;
 let selectedAroma = null;
 let selectedBottle = null;
 
+// Пагинация
+const ITEMS_PER_PAGE = 20;
+let visibleCount = ITEMS_PER_PAGE;
+
 // ============================================
 // ВКЛАДКИ
 // ============================================
@@ -53,17 +57,21 @@ function switchToCalc(aromaName, brandName) {
 // ЗАГРУЗКА КАТАЛОГА
 // ============================================
 async function loadCatalog() {
+  document.getElementById("catalog-loader").style.display = "block";
+  document.getElementById("catalog").innerHTML = "";
+  
   try {
     const response = await fetch(API_URL + "?callback=jsonpCallback");
     const text = await response.text();
     const result = JSON.parse(text.replace(/^jsonpCallback\(/, "").replace(/\);?$/, ""));
     if (result.status === "ok") {
       catalog = result.data;
+      document.getElementById("catalog-loader").style.display = "none";
       renderCatalog();
     }
   } catch (e) {
     console.error("Ошибка загрузки:", e);
-    document.getElementById("catalog").innerHTML = "<p>Ошибка загрузки каталога</p>";
+    document.getElementById("catalog-loader").innerHTML = "<p>Ошибка загрузки каталога</p>";
   }
 }
 
@@ -104,10 +112,13 @@ function renderCatalog() {
 
   if (list.length === 0) {
     container.innerHTML = "<p>Ничего не найдено</p>";
+    document.getElementById("show-more-container").style.display = "none";
     return;
   }
 
-  list.forEach(item => {
+  const visibleItems = list.slice(0, visibleCount);
+  
+  visibleItems.forEach(item => {
     const card = document.createElement("div");
     card.className = "card";
     let badges = "";
@@ -116,7 +127,7 @@ function renderCatalog() {
     if (item.discount > 0) badges += `<div class="card-badge badge-sale">−${item.discount}%</div>`;
     card.innerHTML = `
       <div class="card-photo-wrapper">
-        <img src="${item.photo || ''}" alt="${item.name}" onerror="this.style.display='none'">
+        <img src="${item.photo || ''}" alt="${item.name}" loading="lazy" onerror="this.style.display='none'">
         ${badges}
       </div>
       <div class="card-info">
@@ -127,6 +138,12 @@ function renderCatalog() {
     card.addEventListener("click", () => openModal(item));
     container.appendChild(card);
   });
+
+  if (list.length > visibleCount) {
+    document.getElementById("show-more-container").style.display = "block";
+  } else {
+    document.getElementById("show-more-container").style.display = "none";
+  }
 }
 
 // ============================================
@@ -214,6 +231,7 @@ function openFilterModal(filterKey) {
         if (filters.brand && !catalog.some(a => a.type === opt && a.brand === filters.brand)) filters.brand = null;
         if (filters.group && !catalog.some(a => a.type === opt && a.groups.includes(filters.group))) filters.group = null;
       }
+      visibleCount = ITEMS_PER_PAGE;
       document.getElementById("filter-modal").classList.add("hidden");
       renderCatalog();
     };
@@ -228,11 +246,13 @@ function openFilterModal(filterKey) {
 // ============================================
 document.getElementById("search").addEventListener("input", e => {
   searchQuery = e.target.value;
+  visibleCount = ITEMS_PER_PAGE;
   renderCatalog();
 });
 
 document.getElementById("sort-select").addEventListener("change", e => {
   sortMode = e.target.value;
+  visibleCount = ITEMS_PER_PAGE;
   renderCatalog();
 });
 
@@ -243,18 +263,21 @@ document.querySelectorAll(".filter-btn[data-filter]").forEach(btn => {
 document.getElementById("in-stock-toggle").addEventListener("click", function() {
   onlyInStock = !onlyInStock;
   this.classList.toggle("active", onlyInStock);
+  visibleCount = ITEMS_PER_PAGE;
   renderCatalog();
 });
 
 document.getElementById("new-toggle").addEventListener("click", function() {
   onlyNew = !onlyNew;
   this.classList.toggle("active", onlyNew);
+  visibleCount = ITEMS_PER_PAGE;
   renderCatalog();
 });
 
 document.getElementById("discount-toggle").addEventListener("click", function() {
   onlyDiscount = !onlyDiscount;
   this.classList.toggle("active", onlyDiscount);
+  visibleCount = ITEMS_PER_PAGE;
   renderCatalog();
 });
 
@@ -264,6 +287,7 @@ document.getElementById("reset-filters").addEventListener("click", () => {
   onlyInStock = false;
   onlyNew = false;
   onlyDiscount = false;
+  visibleCount = ITEMS_PER_PAGE;
   document.getElementById("search").value = "";
   document.getElementById("in-stock-toggle").classList.remove("active");
   document.getElementById("new-toggle").classList.remove("active");
@@ -277,6 +301,12 @@ document.getElementById("modal-close").addEventListener("click", () => {
 
 document.getElementById("filter-close").addEventListener("click", () => {
   document.getElementById("filter-modal").classList.add("hidden");
+});
+
+// Кнопка "Показать ещё"
+document.getElementById("show-more-btn").addEventListener("click", () => {
+  visibleCount += ITEMS_PER_PAGE;
+  renderCatalog();
 });
 
 // ============================================
@@ -305,7 +335,7 @@ async function loadCalcData(preAroma, preBrand) {
     }
   } catch (e) {
     console.error("Ошибка загрузки калькулятора:", e);
-    document.getElementById("calc-loader").textContent = "Ошибка загрузки данных";
+    document.getElementById("calc-loader").innerHTML = "<p>Ошибка загрузки данных</p>";
   }
 }
 
@@ -393,7 +423,7 @@ function onVolumeChange() {
     
     div.innerHTML = `
       <div class="view-photo-wrapper">
-        ${b.photo ? `<img src="${b.photo}" alt="${b.view}" onerror="this.style.display='none'">` : ''}
+        ${b.photo ? `<img src="${b.photo}" alt="${b.view}" loading="lazy" onerror="this.style.display='none'">` : ''}
         ${stockBadge}
       </div>
       <div class="view-option-name">${b.view}</div>
